@@ -2,11 +2,14 @@ var models = require('../models');
 
 var User = models.User;
 
-module.exports = function() {
-  User.bulkCreate([
-    {
-      username: "bob",
-      password: "p@$$w0rd!"
-    }
-  ]);
-};
+models.sequelize
+  .sync({force: true})
+  .then(function() {
+    return User.bulkCreate([
+      {
+        username: "bob",
+        password: "p@$$w0rd!"
+      }
+    ]);
+  }
+);

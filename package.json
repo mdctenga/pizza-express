@@ -4,12 +4,17 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "body-parser": "^1.13.2",
     "express": "^4.13.1",
+    "passport": "^0.2.2",
+    "passport-local": "^1.0.0",
     "pg": "^4.4.0",
     "pg-hstore": "^2.3.2",
     "sequelize": "^3.3.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jade": "^1.11.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

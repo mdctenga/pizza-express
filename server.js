@@ -1,23 +1,57 @@
+var path = require ('path');
+
 var express = require('express');
 var app = express();
 var config = require('./config/config.json');
 
-// GET method route
-app.get('/', function (req, res) {
-  res.send('GET request to the homepage');
+var bodyParser = require('body-parser');
+
+var passport = require('passport');
+var LocalStrategy = require ('passport-local').Strategy;
+
+var models =  require('./models');
+var User = models.User;
+
+passport.use( new LocalStrategy(
+  function(username, password, done){
+    console.log("Local Strategy", username, password);
+    User.findOne({
+      where: {
+        "username": username
+      }
+    })
+      .then(function (user) {
+        console.log(user);
+      })
+    .finally(done);
+  })
+);
+
+app.set('views', path.resolve(__dirname, 'views'));
+app.set('view engine', 'jade');
+
+app.use(bodyParser.urlencoded({extended: false}));
+
+app.get('/users', function (req, res) {
+  return res.jason({message: "success!"});
 });
 
-// POST method route
-app.post('/', function (req, res) {
-  res.send('POST request to the homepage');
+app.get('/login', function (req, res) {
+  return res.render('form'); // for your template
 });
 
-var server = app.listen(config.port, function () {
-  var host = server.address().address;
-  var port = server.address().port;
+app.post('/login', passport.authenticate('local', {
+  successRedirect: '/users',
+  failureRedirect: '/login',
+  session: false
+}));
 
-  console.log('Example app listening at http://%s:%s', host, port);
-});
+models.sequelize
+  .sync()
+  .then(function () {
+    var server = app.listen(config.port, function () {
+    });
+  });
 
 // var sequelize = new Sequelize('database', 'username', 'password', {
 //   host: 'localhost',

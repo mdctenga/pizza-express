@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  form(method="post" action="/login")
+    label Username
+    input(name="username" type="text")
+
+    br
+
+    label Password
+    input(name="password" type="password")
+
+    br
+
+    button(type="submit") Login
