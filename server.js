@@ -12,28 +12,61 @@ var LocalStrategy = require ('passport-local').Strategy;
 var models =  require('./models');
 var User = models.User;
 
+var session = require('express-session');
+
+passport.serializeUser(function(user, done){
+  console.log("serializing user...");
+  done(null, user.id);
+});
+passport.deserializeUser(function(id, done){
+  return User.findOne({
+    where: {'id': id}
+  })
+  .then(function(user) {
+    done(null, user);
+  });
+});
+
 passport.use( new LocalStrategy(
-  function(username, password, done){
+  function(username, password, done) {
     console.log("Local Strategy", username, password);
     User.findOne({
       where: {
         "username": username
       }
     })
-      .then(function (user) {
-        console.log(user);
-      })
-    .finally(done);
-  })
-);
+    .then(function (user) {
+      if (!user) {
+        console.log('no user found!');
+        return done(null, false, { message: "User not found!"});
+      } else if (user.password !== password) {
+        console.log('wrong password!');
+        return done(null, false, { message: "Incorrect password!"});
+      }
+      done(null, user);
+    })
+    .catch(done); // to catch random edge case explosions
+  }
+));
 
 app.set('views', path.resolve(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(bodyParser.urlencoded({extended: false}));
+app.use(session( config.session ));
+app.use(passport.initialize());
+app.use(passport.session());
 
-app.get('/users', function (req, res) {
-  return res.jason({message: "success!"});
+app.get('/users',
+  function(req, res, next) {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    res.redirect('/login');
+  },
+
+  function (req, res) {
+  return res.json({message: "success!"});
 });
 
 app.get('/login', function (req, res) {
@@ -43,7 +76,7 @@ app.get('/login', function (req, res) {
 app.post('/login', passport.authenticate('local', {
   successRedirect: '/users',
   failureRedirect: '/login',
-  session: false
+  session: true
 }));
 
 models.sequelize
