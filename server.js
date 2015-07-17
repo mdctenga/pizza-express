@@ -1,61 +1,25 @@
 var path = require ('path');
-
+var config = require('./config/config.json');
 var express = require('express');
 var app = express();
-var config = require('./config/config.json');
 
 var bodyParser = require('body-parser');
 
-var passport = require('passport');
-var LocalStrategy = require ('passport-local').Strategy;
-
-var models =  require('./models');
-var User = models.User;
-
 var session = require('express-session');
 
-passport.serializeUser(function(user, done){
-  console.log("serializing user...");
-  done(null, user.id);
-});
-passport.deserializeUser(function(id, done){
-  return User.findOne({
-    where: {'id': id}
-  })
-  .then(function(user) {
-    done(null, user);
-  });
-});
+var passport = require('passport');
 
-passport.use( new LocalStrategy(
-  function(username, password, done) {
-    console.log("Local Strategy", username, password);
-    User.findOne({
-      where: {
-        "username": username
-      }
-    })
-    .then(function (user) {
-      if (!user) {
-        console.log('no user found!');
-        return done(null, false, { message: "User not found!"});
-      } else if (user.password !== password) {
-        console.log('wrong password!');
-        return done(null, false, { message: "Incorrect password!"});
-      }
-      done(null, user);
-    })
-    .catch(done); // to catch random edge case explosions
-  }
-));
+var models =  require('./models');
+
 
 app.set('views', path.resolve(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(session( config.session ));
-app.use(passport.initialize());
-app.use(passport.session());
+// set initialize passport
+
+require('./app/auth.js')(app);
 
 app.get('/users',
   function(req, res, next) {
@@ -64,13 +28,16 @@ app.get('/users',
     }
     res.redirect('/login');
   },
-
   function (req, res) {
-  return res.json({message: "success!"});
+  return res.render('user', {user: req.user});
 });
 
 app.get('/login', function (req, res) {
   return res.render('form'); // for your template
+});
+
+app.get('/login', function (req, res) {
+  return res.render('form');
 });
 
 app.post('/login', passport.authenticate('local', {
@@ -79,37 +46,14 @@ app.post('/login', passport.authenticate('local', {
   session: true
 }));
 
+app.get('/logout', function (req, res) {
+  req.logout();
+  res.redirect('/login');
+});
+
 models.sequelize
   .sync()
   .then(function () {
     var server = app.listen(config.port, function () {
     });
   });
-
-// var sequelize = new Sequelize('database', 'username', 'password', {
-//   host: 'localhost',
-//   dialect: 'postgres',
-
-// });
-
-// var sequelize = new Sequelize('postgres://user:pass@example.com:5432/dbname');
-
-// var User = sequelize.define('user', {
-//   firstName: {
-//     type: Sequelize.STRING,
-//     field: 'first_name' // Will result in an attribute that is firstName when user facing but first_name in the database
-//   },
-//   lastName: {
-//     type: Sequelize.STRING
-//   }
-// }, {
-//   freezeTableName: true // Model tableName will be the same as the model name
-// });
-
-// User.sync({force: true}).then(function () {
-//   // Table created
-//   return User.create({
-//     firstName: 'John',
-//     lastName: 'Hancock'
-//   });
-// });
